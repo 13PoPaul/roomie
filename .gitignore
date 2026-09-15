@@ -1,0 +1,14 @@
+# Dépendances (bloque backend/node_modules et frontend/node_modules)
+**/node_modules/
+
+# Environnement et secrets
+**/.env
+**/.env.*
+
+# Fichiers de build
+**/dist/
+
+# Logs et cache
+*.log
+npm-debug.log*
+.DS_Store
