@@ -1,11 +1,13 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const password = ref('')
 const confirmPassword = ref('')
 const passwordError = ref('')
+const router = useRouter()
 
 function handleSubmit(){
     if(password.value !== confirmPassword.value){
@@ -13,6 +15,7 @@ function handleSubmit(){
         return 
     }
     passwordError.value = ''
+    router.push('/')
 }
 </script>
 
