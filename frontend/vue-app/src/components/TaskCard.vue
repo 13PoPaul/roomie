@@ -39,8 +39,7 @@ const statusOptions =[
             <span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">
                 {{task.area}}
             </span>
-            // : raccourci for v-bind, it binds the class to the value of priorityColors[task.priority]
-            <span class="text-xs px-2 py-1 rounded-full": class="priorityColors[task.priority]">
+            <span class="text-xs px-2 py-1 rounded-full" :class="priorityColors[task.priority]">
                 {{task.priority}}
             </span>
         </div>

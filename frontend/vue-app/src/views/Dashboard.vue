@@ -122,21 +122,22 @@ const newTask = ref({
 
 
 //function executed when the user submits the form
+
 function addTask(){
-  const title = newTaks.value.title.trim() //trim() removes whitespace from both ends of the task title
+   //trim() removes whitespace from both ends of the task title
+  const title = newTask.value.title.trim()
   if (!title || !newTask.value.dueDate){
-    return //if the title or due date is empty, do not add the task
+    return
   }
-  //push adds a new object to the task array
-  tasks.value.push({
-    ...newTask.value, //... spread operator copies all properties from newTask.value
-    id : tasks.value.length + 1, //assign a new id based on the current length of the tasks array
-    title
-  })
+  const task = {...newTask.value, 
+    id : tasks.value.length + 1, //generate a unique identifier for the new task
+    title}
+  tasks.value.push(task)
+  //hide the form after adding the task
+  showAddForm.value = false 
 
-  showAddForm.value = false //hide the form after adding the task
-
-  newTask.value = { //reset the newTask object to its initial state
+  //reset the newTask object to its initial state
+  newTask.value = { 
     title: '',
     area: 'Bathroom',
     assignedTo: 'Edouard',
@@ -146,4 +147,75 @@ function addTask(){
   }
 }
 
+
 </script>
+
+<template>
+  <main class="max-w-7xl mx-auto px-6 py-10">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold texte-gray-900">What needs to be done ?</h1>
+      <p class="text-gray-500 mt-2">Keep the place clean, keep the roomates happy.</p>
+    </div>
+    <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+      <div class = "flex flex-wrap gap-3">
+        <select v-model="selectedArea" class="bg-white border border-gray-200 rounded-lg px-4 py-2">
+          <option v-for="area in areas" :key="area" :value="area">  
+            {{ area === 'All' ? 'All Areas' : area}}
+          </option>
+        </select>
+
+        <select v-model="selectedRoomate" class="bg-white border border-gray-200 rounded-lg px-4 py-2">
+          <option v-for="roomate in roomates" :key="roomate" :value="roomate">
+            {{ roomate === 'All' ? 'Everyone' : roomate }}
+          </option>
+        </select>
+      </div>
+      <button @click="showAddForm=true" class=""bg-violet-500 hover:bg-violet-600 text-white font-medium px-5 py-2 rounded-lg shadow-md transition>
+        + Add Task
+      </button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <TaskColumn v-for="column in columns" :key="column.id" :title="column.title" :tasks="column.tasks" :color="column.color" @change-status="changeTaskStatus" />
+    </div>
+
+    <div v-if="showAddForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <form @submit.prevent="addTask" class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
+        <h2 class="text-xl font-bold">
+          Add New Task
+        </h2>
+        <input v-model="newTask.title" required placeholder="Task title" class="w-full border rounded-lg p-2"/>
+        <label class="block text-sm">Area</label>
+        <select v-model="newTask.area" class="w-full border rounded-lg p-2">
+          <option v-for="area in areas.filter (area => area !== 'All')" :key="area">
+            {{area}}
+          </option>
+        </select>
+
+        <label class="block text-sm">Assigned To</label>
+        <select v-model="newTask.assignedTo" class="w-full border rounded-lg p-2">
+          <option v-for="roomate in roomates.filter(roomate => roomate !== 'All')" :key="roomate">
+            {{roomate}}
+          </option>
+        </select>
+
+        <label class="block text-sm">Priority</label>
+        <select v-model="newTask.priority" class="w-full border rounded-lg p-2">
+          <option>Low</option>
+          <option>Medium</option>
+          <option>High</option>
+        </select>
+
+        <label class="block text-sm">Due Date</label>
+        <input v-model="newTask.dueDate" type="date" required class="w-full border rounded-lg p-2"/>
+        <div class="flex justify-end gap-3 pt-3">
+          <button type="button" @click="showAddForm=false" class="px-4 py-2 rounded-lg border">
+            Cancel
+          </button>
+          <button type="submit" class="px-4 py-2 bg-violet-500 text-white rounded-lg">
+            Create Task
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+</template>
