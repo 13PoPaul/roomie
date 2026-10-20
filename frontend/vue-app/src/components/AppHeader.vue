@@ -6,14 +6,14 @@
                 <span class="text-xl font-bold text-violet-600">Roomie</span>
             </div>
 
-            <div clas="flex items-center gap-3">
+            <div class="flex items-center gap-3">
                 <div class="text-right">
                     <p class="text-sm font-semibold">
-                        {{user.firstName}} {{user.lastName}}
+                        Paul Iglesias
                     </p>
                 </div>
                 <div class="bg-violet-100 text-violet-700 rounded-full w-9 h-9 flex items-center justify-center">
-                    A
+                    P
                 </div>
             </div>
         </div>
