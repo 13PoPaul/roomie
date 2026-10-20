@@ -6,10 +6,17 @@ import TaskCard from './TaskCard.vue'
 defineProps({
     title : String, //name displayed at the top of the column
     tasks : Array,//array containing all the tasks that will be displayed in this column
-    color : String //tailwind class that will be used to color the background
+    color : String, //tailwind class that will be used to color the background
+    status : String //status of the tasks that will be displayed in this column
 })
 
-const emit = defineEmits(['change-status']) //define the custom event that will be sent to the parent component when a task status is changed
+const emit = defineEmits(['change-status', 'drop-task']) //define the custom event that will be sent to the parent component when a task status is changed
+function handleDrop(event){
+    const taskId=event.dataTransfer.getData('text/plain')
+    if(!taskId) return
+    emit('drop-task', taskId, props.status) //emit the custom event to the parent component
+}
+
 
 function handleStatusChange(id, status) {
     emit('change-status', id, status) //emit the custom event to the parent component
@@ -18,7 +25,7 @@ function handleStatusChange(id, status) {
 </script>
 
 <template>
-    <section class="rounded-lg p-4 min-h-[400px]" :class="color">
+    <section class="rounded-lg p-4 min-h-[400px]" :class="color" @dragover.prevent @drop.event="handleDrop">
         <div class="flex items-center gap-2 mb-4">
             <h2 class="font-bold texte-gray-800">
                 {{title}}

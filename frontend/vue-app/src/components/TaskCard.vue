@@ -31,7 +31,7 @@ const statusOptions =[
 </script>
 
 <template>
-    <div class="rounded-xl bg-white p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+    <div draggable="true" @dragstart="$event.dataTransfer.setData('text/plain',String(task.id))" class="rounded-xl bg-white p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing">
         <h3 class = "font-semi-bold text-gray-800 mb-2">
             {{task.title}}
         </h3>

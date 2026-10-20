@@ -147,6 +147,12 @@ function addTask(){
   }
 }
 
+function handleTaskDrop(taskId, newStatus){
+  const task =  tasks.value.find(task => String(task.id)===taskId)
+  if (!task) return
+  task.status = newStatus
+}
+
 
 </script>
 
@@ -170,12 +176,12 @@ function addTask(){
           </option>
         </select>
       </div>
-      <button @click="showAddForm=true" class=""bg-violet-500 hover:bg-violet-600 text-white font-medium px-5 py-2 rounded-lg shadow-md transition>
+      <button @click="showAddForm=true" class=" flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-600 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer w-full sm:w-auto">
         + Add Task
       </button>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-      <TaskColumn v-for="column in columns" :key="column.id" :title="column.title" :tasks="column.tasks" :color="column.color" @change-status="changeTaskStatus" />
+      <TaskColumn v-for="column in columns" :key="column.id" :title="column.title" :tasks="column.tasks" :color="column.color" :status="column.id" @change-status="changeTaskStatus" @drop-task="handleTaskDrop" />
     </div>
 
     <div v-if="showAddForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
