@@ -147,6 +147,43 @@ function addTask(){
   }
 }
 
+function handleTaskDrop(taskId, newStatus){
+  const task =  tasks.value.find(task => String(task.id)===taskId)
+  if (!task) return
+  task.status = newStatus
+}
+
+const showEditForm = ref(false)
+const editingTask=ref(null)
+function openEditTask(taskId){
+  const task = tasks.value.find(task => task.id === taskId)
+  if (!task) return
+  editingTask.value = {...task} //create a copy of the task to edit
+  showEditForm.value = true
+}
+
+function saveTask(){
+  if (!editingTask.value)return
+  const title = editingTask.value.title.trim()
+  if (!title || !editingTask.value.dueDate.trim()){
+    return
+  }
+  const task = tasks.value.find(task => task.id === editingTask.value.id)
+  if (!task) return
+  Object.assign(task, {...editingTask.value, title}) //update the original task with the edited values
+  showEditForm.value = false
+  editingTask.value = null
+}
+
+function deleteTask(){
+  if (!editingTask.value)return
+  const confirmed = window.confirm('Are you sure you want to delete this task?')
+  if (!confirmed) return
+  tasks.value = tasks.value.filter(task => task.id !== editingTask.value.id)
+  showEditForm.value = false
+  editingTask.value = null
+}
+
 
 </script>
 
@@ -170,12 +207,12 @@ function addTask(){
           </option>
         </select>
       </div>
-      <button @click="showAddForm=true" class=""bg-violet-500 hover:bg-violet-600 text-white font-medium px-5 py-2 rounded-lg shadow-md transition>
+      <button @click="showAddForm=true" class=" flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-600 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer w-full sm:w-auto">
         + Add Task
       </button>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-      <TaskColumn v-for="column in columns" :key="column.id" :title="column.title" :tasks="column.tasks" :color="column.color" @change-status="changeTaskStatus" />
+      <TaskColumn v-for="column in columns" :key="column.id" :title="column.title" :tasks="column.tasks" :color="column.color" :status="column.id" @change-status="changeTaskStatus" @drop-task="handleTaskDrop" @edit-task="openEditTask" />
     </div>
 
     <div v-if="showAddForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -216,6 +253,62 @@ function addTask(){
           </button>
         </div>
       </form>
+    </div>
+    <div v-if="showEditForm && editingTask" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" >
+      <form @submit.prevent="saveTask" class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
+        <div class="flex justify-between items-center"> 
+          <h2 class="text-xl font-bold text-gray-800">Edit Task</h2>
+          <button type="button" @click="showEditForm=false" class="text-gray-400 hover:text-gray-700"> X </button>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Task Title</label>
+          <input v-model="editingTask.title" required placeholder="Task title" class="w-full border rounded-lg p-2"/>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Area</label>
+          <select v-model="editingTask.area" class="w-full border rounded-lg p-2">
+            <option v-for="area in areas.filter (area => area !== 'All')" :key="area" :value="area">
+              {{area}}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Assigned To</label>
+          <select v-model="editingTask.assignedTo" class="w-full border rounded-lg p-2">
+            <option v-for="roomate in roomates.filter(roomate => roomate !== 'All')" :key="roomate" :value="roomate">
+              {{roomate}}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Priority</label>
+          <select v-model="editingTask.priority" class="w-full border rounded-lg p-2">
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Due Date</label>
+          <input v-model="editingTask.dueDate" type="date" required class="w-full border rounded-lg p-2"/>
+        </div>
+
+        <div class="flex justify-between items-center pt-4">
+          <button type="button" @click="deleteTask" class="bg-red-50 text-red-600 hover:bg-red-100 rounded-lg px-4 py-2 transition">
+            🗑️ Delete
+          </button>
+          <div class="flex gap-2">
+            <button type="button" @click="showEditForm=false" class="px-4 py-2 rounded-lg border">
+              Cancel
+            </button>
+            <button type="submit" class="px-4 py-2 bg-violet-500 text-white hover:bg-violet-600 rounded-lg">
+              Save Changes
+            </button>
+          </div>
+        </div>
+
+      </form>
+
     </div>
   </main>
 </template>

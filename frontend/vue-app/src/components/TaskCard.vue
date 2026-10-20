@@ -9,7 +9,7 @@ defineProps({
 })
 
 // decalres custom events that this component can send to its parent
-const emit = defineEmits(['change-status'])
+const emit = defineEmits(['change-status', 'edit-task'])
 
 
 // it is a javascript object and it associates task priority with a tailwind class
@@ -28,10 +28,20 @@ const statusOptions =[
 
 ]
 
+
+
+function formatDate(date){
+    if (!date) return 'No due date'
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date
+    const [year, month, day] = date.split('-').map(Number)
+    const formattedDate = new Date(year, month - 1, day)
+    return formattedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 </script>
 
 <template>
-    <div class="rounded-xl bg-white p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+    <div draggable="true" @dragstart="$event.dataTransfer.setData('text/plain',String(task.id))" @dblclick.stop="emit('edit-task', task.id)" class="rounded-xl bg-white p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing">
         <h3 class = "font-semi-bold text-gray-800 mb-2">
             {{task.title}}
         </h3>
@@ -44,15 +54,11 @@ const statusOptions =[
             </span>
         </div>
 
-        <div class="flex items-center justidy-between text-xs text-gray-500 mb-3">
-            <span> {{task.assignedTo}}</span>
-            <span> {{task.dueDate}}</span>
+        <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+            <span> 👤 {{task.assignedTo}}</span>
+            <span> 📅 {{ formatDate(task.dueDate) }}</span>
         </div>
 
-        <select :value="task.status" @change="emit('change-status', task.id, $event.target.value)" class="w-full rounded-lg border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700">
-            <option v-for="status in statusOptions" :key="status.value" :value="status.value">
-                {{status.label}}
-            </option>
-        </select>
+        
     </div>
 </template>
