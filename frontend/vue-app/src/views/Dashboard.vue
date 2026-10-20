@@ -11,7 +11,7 @@ const tasks = ref([
     title: 'Clean the bathroom',
     area: 'Bathroom',       
     assignedTo: 'Edouard',        
-    priority: 'High',           
+    priority: 'High',          
     dueDate: 'Tomorrow',        
     status: 'todo'              
   },
