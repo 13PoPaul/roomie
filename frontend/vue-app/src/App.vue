@@ -2,17 +2,18 @@
 import {RouterView, useRoute} from 'vue-router'
 import {computed} from 'vue'
 import AppHeader from './components/AppHeader.vue'
-import Dashboard from './views/Dashboard.vue'
+
 
 const route = useRoute()
-const isDashboardRoute = computed(() => route.name === 'dashboard')
+const headerUse=['dashboard-selection', 'create-dashboard', 'dashboard']
+const showHeader=computed(()=>headerRoutes.includes(route.name))
 </script>
 
 
 <template>
   
   <div class="min-h-screen bg-purple-50">
-    <AppHeader v-if="isDashboardRoute"/>
+    <AppHeader v-if="showHeader"/>
     <RouterView />
   </div>
 </template>

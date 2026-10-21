@@ -5,7 +5,12 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 function handleLogin(){
-  router.push('/dashboard')
+  const activeDashboard=localStorage.getItem('roomie-active-dashboard')
+  if (activeDashboard){
+    router.push('/dashboard')
+  }else{
+    router.push('/dashboard-selection')
+  }
 }
 
 const showPassword = ref(false)
