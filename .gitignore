@@ -1,4 +1,4 @@
-# Dépendances (bloque backend/node_modules et frontend/node_modules)
+# Dépendances
 **/node_modules/
 
 # Environnement et secrets
@@ -12,3 +12,4 @@
 *.log
 npm-debug.log*
 .DS_Store
+Thumbs.db
