@@ -36,7 +36,10 @@ exports.create = (req, res) => {
 
 // Retrieve all Tasks
 exports.findAll = (req, res) => {
-  Task.findAll()
+  const roomId = req.query.roomId
+  const condition = roomId ? { roomId: roomId } : null
+
+  Task.findAll({ where: condition })
     .then(data => {
       res.send(data)
     })

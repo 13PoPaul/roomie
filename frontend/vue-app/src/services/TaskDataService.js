@@ -1,9 +1,10 @@
 import http from '../http-common'
 
 class TaskDataService {
-  getAll() {
-    return http.get('/tasks')
-  }
+getAll(roomId) {
+  const url = roomId ? `/tasks?roomId=${roomId}` : '/tasks'
+  return http.get(url)
+}
 
   get(id) {
     return http.get(`/tasks/${id}`)
