@@ -32,4 +32,4 @@ app.listen(PORT, () => {
 
 // Sync database models
 const db = require('./app/models')
-db.connex.sync({ force: true })
+db.connex.sync()

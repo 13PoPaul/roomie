@@ -75,3 +75,23 @@ exports.findOne = (req, res) => {
       })
     })
 }
+
+// Récupérer tous les membres d'un dashboard donné
+exports.findMembers = (req, res) => {
+  const id = req.params.id
+
+  Dashboard.findByPk(id, {
+    include: [{
+      model: db.users,
+      as: 'members',
+      attributes: ['user_id', 'user_name', 'user_email'] // On ne renvoie pas le mot de passe
+    }]
+  })
+    .then(data => {
+      if (!data) return res.status(404).send({ message: 'Dashboard not found.' })
+      res.send(data.members)
+    })
+    .catch(err => {
+      res.status(500).send({ message: err.message || 'Error fetching members.' })
+    })
+}

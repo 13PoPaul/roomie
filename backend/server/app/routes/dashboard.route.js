@@ -5,6 +5,7 @@ module.exports = app => {
   router.post('/', dashboard.create)
   router.post('/join', dashboard.joinByCode)
   router.get('/:id', dashboard.findOne)
+  router.get('/:id/users', dashboard.findMembers)
 
   app.use('/api/dashboards', router)
 }

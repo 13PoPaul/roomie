@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import TaskColumn from '../components/TaskColumn.vue'
 import TaskDataService from '../services/TaskDataService'
+import DashboardDataService from '../services/DashboardDataService' // <-- AJOUTER CETTE LIGNE
 
 // Liste réactive alimentée par la base de données
 const tasks = ref([])
@@ -11,7 +12,7 @@ const selectedArea = ref('All')
 const selectedRoomate = ref('All')
 
 const areas = ['All', 'Bathroom', 'Bedroom', 'Kitchen', 'Other']
-const roomates = ['All', 'Edouard', 'Clemence', 'Paul', 'Jeanne']
+const roommates = ref([])
 
 // 1. Charger les tâches depuis le serveur au montage du composant
 function loadTasks() {
@@ -35,6 +36,7 @@ function loadTasks() {
 
 onMounted(() => {
   loadTasks()
+  loadRoommates()
 })
 
 // Filtrage dynamique
@@ -190,41 +192,62 @@ function deleteTask() {
     })
     .catch(err => console.error('Erreur lors de la suppression :', err))
 }
+
+function loadRoommates() {
+  const savedRoom = localStorage.getItem('roomie-active-room')
+  const activeRoom = savedRoom ? JSON.parse(savedRoom) : null
+  const dashboardId = activeRoom?.dashboard_id || activeRoom?.id
+
+  if (!dashboardId) return
+
+  DashboardDataService.getMembers(dashboardId)
+    .then(response => {
+      roommates.value = response.data
+    })
+    .catch(err => console.error('Erreur chargement colocataires :', err))
+}
+
 </script>
 
 <template>
   <main class="max-w-7xl mx-auto px-6 py-10">
+    <!-- Header title section -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900">What needs to be done ?</h1>
       <p class="text-gray-500 mt-2">Keep the place clean, keep the roomates happy.</p>
     </div>
 
-    <!-- Alerte en cas de problème réseau avec le serveur -->
+    <!-- Network / Server error alert banner -->
     <div v-if="errorMessage" class="bg-red-100 text-red-700 p-3 rounded-lg mb-6">
       {{ errorMessage }}
     </div>
 
+    <!-- Filter toolbar and Add Task button -->
     <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
       <div class="flex flex-wrap gap-3">
+        <!-- Area filter dropdown -->
         <select v-model="selectedArea" class="bg-white border border-gray-200 rounded-lg px-4 py-2">
           <option v-for="area in areas" :key="area" :value="area">  
             {{ area === 'All' ? 'All Areas' : area }}
           </option>
         </select>
 
+        <!-- Dynamic Roommate filter dropdown populated from the database -->
         <select v-model="selectedRoomate" class="bg-white border border-gray-200 rounded-lg px-4 py-2">
-          <option v-for="roomate in roomates" :key="roomate" :value="roomate">
-            {{ roomate === 'All' ? 'Everyone' : roomate }}
+          <option value="All">Everyone</option>
+          <option v-for="user in roommates" :key="user.user_id" :value="user.user_name">
+            {{ user.user_name }}
           </option>
         </select>
       </div>
 
+      <!-- Trigger button for opening the Add Task modal -->
       <button @click="showAddForm = true" class="flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-600 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer w-full sm:w-auto">
         + Add Task
       </button>
     </div>
 
-    <!-- Colonnes Kanban -->
+    <!-- Kanban board columns container -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
       <TaskColumn 
         v-for="column in columns" 
@@ -239,7 +262,7 @@ function deleteTask() {
       />
     </div>
 
-    <!-- Modal d'ajout -->
+    <!-- Modal dialog for creating a new task -->
     <div v-if="showAddForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <form @submit.prevent="addTask" class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
         <h2 class="text-xl font-bold">Add New Task</h2>
@@ -253,10 +276,11 @@ function deleteTask() {
           </option>
         </select>
 
+        <!-- Dynamic roommate assignment list from MySQL -->
         <label class="block text-sm">Assigned To</label>
         <select v-model="newTask.assignedTo" class="w-full border rounded-lg p-2">
-          <option v-for="roomate in roomates.filter(r => r !== 'All')" :key="roomate" :value="roomate">
-            {{ roomate }}
+          <option v-for="user in roommates" :key="user.user_id" :value="user.user_name">
+            {{ user.user_name }}
           </option>
         </select>
 
@@ -281,7 +305,7 @@ function deleteTask() {
       </form>
     </div>
 
-    <!-- Modal d'édition -->
+    <!-- Modal dialog for editing or deleting an existing task -->
     <div v-if="showEditForm && editingTask" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <form @submit.prevent="saveTask" class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
         <div class="flex justify-between items-center"> 
@@ -303,11 +327,12 @@ function deleteTask() {
           </select>
         </div>
         
+        <!-- Dynamic roommate assignment list from MySQL -->
         <div>
           <label class="block text-sm mb-1">Assigned To</label>
           <select v-model="editingTask.assignedTo" class="w-full border rounded-lg p-2">
-            <option v-for="roomate in roomates.filter(r => r !== 'All')" :key="roomate" :value="roomate">
-              {{ roomate }}
+            <option v-for="user in roommates" :key="user.user_id" :value="user.user_name">
+              {{ user.user_name }}
             </option>
           </select>
         </div>
