@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
 })
 
 // Register routes
-require('./app/routes/roommate.route')(app)
+require('./app/routes/task.route')(app)
 
 // Set port and listen for requests
 const PORT = 8080

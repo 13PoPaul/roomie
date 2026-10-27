@@ -1,116 +1,119 @@
 const db = require('../models')
-const Roommate = db.roommates
+const Task = db.tasks
 
-// Create and Save a new Roommate
+// Create and Save a new Task
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.name) {
+  if (!req.body.title) {
     res.status(400).send({
-      message: 'The name is mandatory.'
+      message: 'The title cannot be empty.'
     })
     return
   }
 
-  // Create a Roommate object
-  const roommate = {
-    name: req.body.name,
-    email: req.body.email,
-    room: req.body.room,
-    phone: req.body.phone
+  // Create Task object
+  const task = {
+    title: req.body.title,
+    description: req.body.description,
+    location: req.body.location,
+    dueDate: req.body.dueDate,
+    priority: req.body.priority || 'medium',
+    status: req.body.status || 'pending',
+    roomId: req.body.roomId || null
   }
 
   // Save to database
-  Roommate.create(roommate)
+  Task.create(task)
     .then(data => {
       res.send(data)
     })
     .catch(err => {
       res.status(500).send({
-        message: err.message || 'Error occurred while creating the roommate.'
+        message: err.message || 'Error occurred while creating the task.'
       })
     })
 }
 
-// Retrieve all Roommates from the database
+// Retrieve all Tasks
 exports.findAll = (req, res) => {
-  Roommate.findAll()
+  Task.findAll()
     .then(data => {
       res.send(data)
     })
     .catch(err => {
       res.status(500).send({
-        message: err.message || 'Error occurred while retrieving roommates.'
+        message: err.message || 'Error occurred while retrieving tasks.'
       })
     })
 }
 
-// Find a single Roommate by ID
+// Find a single Task with an id
 exports.findOne = (req, res) => {
   const id = req.params.id
 
-  Roommate.findByPk(id)
+  Task.findByPk(id)
     .then(data => {
       if (data) {
         res.send(data)
       } else {
         res.status(404).send({
-          message: `Cannot find roommate with id=${id}.`
+          message: `Cannot find task with id=${id}.`
         })
       }
     })
     .catch(err => {
       res.status(500).send({
-        message: `Error retrieving roommate with id=${id}.`
+        message: `Error retrieving task with id=${id}.`
       })
     })
 }
 
-// Update a Roommate by ID
+// Update a Task by the id
 exports.update = (req, res) => {
   const id = req.params.id
 
-  Roommate.update(req.body, {
+  Task.update(req.body, {
     where: { id: id }
   })
     .then(num => {
       if (num == 1) {
         res.send({
-          message: 'Roommate was updated successfully.'
+          message: 'Task was updated successfully.'
         })
       } else {
         res.send({
-          message: `Cannot update roommate with id=${id}. Maybe roommate was not found or req.body is empty.`
+          message: `Cannot update task with id=${id}.`
         })
       }
     })
     .catch(err => {
       res.status(500).send({
-        message: `Error updating roommate with id=${id}.`
+        message: `Error updating task with id=${id}.`
       })
     })
 }
 
-// Delete a Roommate by ID
+// Delete a Task with the specified id
 exports.delete = (req, res) => {
   const id = req.params.id
 
-  Roommate.destroy({
+  Task.destroy({
     where: { id: id }
   })
     .then(num => {
       if (num == 1) {
         res.send({
-          message: 'Roommate was deleted successfully.'
+          message: 'Task was deleted successfully.'
         })
       } else {
         res.send({
-          message: `Cannot delete roommate with id=${id}. Maybe roommate was not found.`
+          message: `Cannot delete task with id=${id}.`
         })
       }
     })
     .catch(err => {
       res.status(500).send({
-        message: `Could not delete roommate with id=${id}.`
+        message: `Could not delete task with id=${id}.`
       })
     })
 }
