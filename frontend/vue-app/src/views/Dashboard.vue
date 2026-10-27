@@ -1,66 +1,11 @@
 <script setup>
-//import Vue's reacativity functions
-import {ref, computed} from 'vue'
-
-//import the column component
+import { ref, computed, onMounted } from 'vue'
 import TaskColumn from '../components/TaskColumn.vue'
+import TaskDataService from '../services/TaskDataService'
 
-const tasks = ref([
-  {
-    id: 1,                      //unique identifier
-    title: 'Clean the bathroom',
-    area: 'Bathroom',       
-    assignedTo: 'Edouard',        
-    priority: 'High',          
-    dueDate: 'Tomorrow',        
-    status: 'todo'              
-  },
-  {
-    id: 2,
-    title: 'Buy toilet paper',
-    area: 'Bathroom',
-    assignedTo: 'Clemence',
-    priority: 'Medium',
-    dueDate: 'Sunday',
-    status: 'todo'
-  },
-  {
-    id: 3,
-    title: 'Take out the trash',
-    area: 'Kitchen',
-    assignedTo: 'Paul',
-    priority: 'High',
-    dueDate: 'Today',
-    status: 'todo'
-  },
-  {
-    id: 4,
-    title: 'Clean the kitchen',
-    area: 'Kitchen',
-    assignedTo: 'Jeanne',
-    priority: 'High',
-    dueDate: 'Tomorrow',
-    status: 'doing'
-  },
-  {
-    id: 5,
-    title: 'Wipe down counters',
-    area: 'Kitchen',
-    assignedTo: 'Jeanne',
-    priority: 'Medium',
-    dueDate: 'Friday',
-    status: 'doing'
-  },
-  {
-    id: 6,
-    title: 'Vacuum living room',
-    area: 'Other',
-    assignedTo: 'Edouard',
-    priority: 'Low',
-    dueDate: 'Yesterday',
-    status: 'done'
-  }
-]) //reactive variable that will change values when Vue updates the interface
+// Liste réactive alimentée par la base de données
+const tasks = ref([])
+const errorMessage = ref('')
 
 const selectedArea = ref('All') 
 const selectedRoomate = ref('All')
@@ -68,49 +13,79 @@ const selectedRoomate = ref('All')
 const areas = ['All', 'Bathroom', 'Bedroom', 'Kitchen', 'Other']
 const roomates = ['All', 'Edouard', 'Clemence', 'Paul', 'Jeanne']
 
-//computed() creates a value derived from reactive data. It will automatically recalculate when tasks, selectedArea or selectedRoomate change
+// 1. Charger les tâches depuis le serveur au montage du composant
+function loadTasks() {
+  TaskDataService.getAll()
+    .then(response => {
+      tasks.value = response.data.map(task => ({
+        id: task.task_id || task.id,
+        title: task.task_title || task.title,
+        area: task.task_location || task.location || 'Other',
+        assignedTo: task.task_description || task.description || 'Edouard',
+        priority: task.task_priority || task.priority || 'Medium',
+        dueDate: (task.task_duedate || task.dueDate) ? (task.task_duedate || task.dueDate).split('T')[0] : '',
+        status: task.task_status || task.status || 'todo'
+      }))
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement des tâches :', error)
+      errorMessage.value = 'Impossible de contacter le serveur.'
+    })
+}
+
+onMounted(() => {
+  loadTasks()
+})
+
+// Filtrage dynamique
 const filteredTasks = computed(() => {
-  return tasks.value.filter(task =>{
-    const matchesArea = selectedArea.value==='All' || task.area===selectedArea.value
-    const matchesRoomate = selectedRoomate.value==='All' || task.assignedTo===selectedRoomate.value
+  return tasks.value.filter(task => {
+    const matchesArea = selectedArea.value === 'All' || task.area === selectedArea.value
+    const matchesRoomate = selectedRoomate.value === 'All' || task.assignedTo === selectedRoomate.value
     return matchesArea && matchesRoomate
   })
 })
 
-
-
-//build the 3 dashboard columns by filtering the tasks based on their status
-const columns = computed(() =>[
+// Répartition dans les trois colonnes du Kanban
+const columns = computed(() => [
   {
-    id : 'todo',
-    title : 'To Do',
-    color : 'bg-purple-100',
-    tasks : filteredTasks.value.filter(task => task.status==='todo')
+    id: 'todo',
+    title: 'To Do',
+    color: 'bg-purple-100',
+    tasks: filteredTasks.value.filter(task => task.status === 'todo')
   },
   {
-    id : 'doing',
-    title : 'Doing',
-    color : 'bg-orange-100',
-    tasks : filteredTasks.value.filter(task => task.status==='doing')
+    id: 'doing',
+    title: 'Doing',
+    color: 'bg-orange-100',
+    tasks: filteredTasks.value.filter(task => task.status === 'doing')
   },
   {
-    id : 'done',
-    title : 'Done',
-    color : 'bg-green-100',
-    tasks : filteredTasks.value.filter(task => task.status==='done')
+    id: 'done',
+    title: 'Done',
+    color: 'bg-green-100',
+    tasks: filteredTasks.value.filter(task => task.status === 'done')
   }
 ])
 
-
+// 2. Mettre à jour le statut d'une tâche (clic ou drag & drop)
 function changeTaskStatus(id, newStatus) {
-  const task = tasks.value.find(task => task.id === id)
-  if (task && ['todo', 'doing', 'done'].includes(newStatus)) {
-    task.status = newStatus
-  }
+  if (!['todo', 'doing', 'done'].includes(newStatus)) return
+
+  TaskDataService.update(id, { status: newStatus })
+    .then(() => {
+      const task = tasks.value.find(t => t.id === id)
+      if (task) task.status = newStatus
+    })
+    .catch(err => console.error('Erreur de mise à jour du statut :', err))
 }
 
-const showAddForm = ref(false)
+function handleTaskDrop(taskId, newStatus) {
+  changeTaskStatus(Number(taskId), newStatus)
+}
 
+// 3. Formulaire d'ajout d'une tâche
+const showAddForm = ref(false)
 const newTask = ref({
   title: '',
   area: 'Bathroom',
@@ -120,84 +95,120 @@ const newTask = ref({
   status: 'todo'
 })
 
-
-//function executed when the user submits the form
-
-function addTask(){
-   //trim() removes whitespace from both ends of the task title
+function addTask() {
   const title = newTask.value.title.trim()
-  if (!title || !newTask.value.dueDate){
-    return
-  }
-  const task = {...newTask.value, 
-    id : tasks.value.length + 1, //generate a unique identifier for the new task
-    title}
-  tasks.value.push(task)
-  //hide the form after adding the task
-  showAddForm.value = false 
+  if (!title || !newTask.value.dueDate) return
 
-  //reset the newTask object to its initial state
-  newTask.value = { 
-    title: '',
-    area: 'Bathroom',
-    assignedTo: 'Edouard',
-    priority: 'Medium',
-    dueDate: '',
-    status: 'todo'
+  // Préparation du payload compatible avec le contrôleur
+  const payload = {
+    title: title,
+    location: newTask.value.area,
+    description: newTask.value.assignedTo,
+    priority: newTask.value.priority,
+    dueDate: newTask.value.dueDate,
+    status: newTask.value.status
   }
+
+  TaskDataService.create(payload)
+    .then(response => {
+      const created = response.data
+
+      // Ajout dans la liste réactive avec les clés réelles renvoyées par MySQL
+      tasks.value.push({
+        id: created.task_id || created.id,
+        title: created.task_title || created.title || title,
+        area: created.task_location || created.location || newTask.value.area,
+        assignedTo: created.task_description || created.description || newTask.value.assignedTo,
+        priority: created.task_priority || created.priority || newTask.value.priority,
+        dueDate: (created.task_duedate || created.dueDate) 
+          ? (created.task_duedate || created.dueDate).split('T')[0] 
+          : newTask.value.dueDate,
+        status: created.task_status || created.status || newTask.value.status || 'todo'
+      })
+
+      // Fermeture de la boîte modale et réinitialisation
+      showAddForm.value = false
+      newTask.value = { 
+        title: '',
+        area: 'Bathroom',
+        assignedTo: 'Edouard',
+        priority: 'Medium',
+        dueDate: '',
+        status: 'todo'
+      }
+    })
+    .catch(err => console.error('Erreur lors de la création de la tâche :', err))
 }
 
-function handleTaskDrop(taskId, newStatus){
-  const task =  tasks.value.find(task => String(task.id)===taskId)
-  if (!task) return
-  task.status = newStatus
-}
-
+// 4. Édition et suppression
 const showEditForm = ref(false)
-const editingTask=ref(null)
-function openEditTask(taskId){
-  const task = tasks.value.find(task => task.id === taskId)
+const editingTask = ref(null)
+
+function openEditTask(taskId) {
+  const task = tasks.value.find(t => t.id === taskId)
   if (!task) return
-  editingTask.value = {...task} //create a copy of the task to edit
+  editingTask.value = { ...task }
   showEditForm.value = true
 }
 
-function saveTask(){
-  if (!editingTask.value)return
+function saveTask() {
+  if (!editingTask.value) return
   const title = editingTask.value.title.trim()
-  if (!title || !editingTask.value.dueDate.trim()){
-    return
+  if (!title || !editingTask.value.dueDate) return
+
+  const payload = {
+    title: title,
+    location: editingTask.value.area,
+    description: editingTask.value.assignedTo,
+    priority: editingTask.value.priority,
+    dueDate: editingTask.value.dueDate,
+    status: editingTask.value.status
   }
-  const task = tasks.value.find(task => task.id === editingTask.value.id)
-  if (!task) return
-  Object.assign(task, {...editingTask.value, title}) //update the original task with the edited values
-  showEditForm.value = false
-  editingTask.value = null
+
+  TaskDataService.update(editingTask.value.id, payload)
+    .then(() => {
+      const task = tasks.value.find(t => t.id === editingTask.value.id)
+      if (task) {
+        Object.assign(task, { ...editingTask.value, title })
+      }
+      showEditForm.value = false
+      editingTask.value = null
+    })
+    .catch(err => console.error('Erreur lors de la modification :', err))
 }
 
-function deleteTask(){
-  if (!editingTask.value)return
+function deleteTask() {
+  if (!editingTask.value) return
   const confirmed = window.confirm('Are you sure you want to delete this task?')
   if (!confirmed) return
-  tasks.value = tasks.value.filter(task => task.id !== editingTask.value.id)
-  showEditForm.value = false
-  editingTask.value = null
+
+  TaskDataService.delete(editingTask.value.id)
+    .then(() => {
+      tasks.value = tasks.value.filter(t => t.id !== editingTask.value.id)
+      showEditForm.value = false
+      editingTask.value = null
+    })
+    .catch(err => console.error('Erreur lors de la suppression :', err))
 }
-
-
 </script>
 
 <template>
   <main class="max-w-7xl mx-auto px-6 py-10">
     <div class="mb-8">
-      <h1 class="text-3xl font-bold texte-gray-900">What needs to be done ?</h1>
+      <h1 class="text-3xl font-bold text-gray-900">What needs to be done ?</h1>
       <p class="text-gray-500 mt-2">Keep the place clean, keep the roomates happy.</p>
     </div>
+
+    <!-- Alerte en cas de problème réseau avec le serveur -->
+    <div v-if="errorMessage" class="bg-red-100 text-red-700 p-3 rounded-lg mb-6">
+      {{ errorMessage }}
+    </div>
+
     <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
-      <div class = "flex flex-wrap gap-3">
+      <div class="flex flex-wrap gap-3">
         <select v-model="selectedArea" class="bg-white border border-gray-200 rounded-lg px-4 py-2">
           <option v-for="area in areas" :key="area" :value="area">  
-            {{ area === 'All' ? 'All Areas' : area}}
+            {{ area === 'All' ? 'All Areas' : area }}
           </option>
         </select>
 
@@ -207,45 +218,60 @@ function deleteTask(){
           </option>
         </select>
       </div>
-      <button @click="showAddForm=true" class=" flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-600 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer w-full sm:w-auto">
+
+      <button @click="showAddForm = true" class="flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-600 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer w-full sm:w-auto">
         + Add Task
       </button>
     </div>
+
+    <!-- Colonnes Kanban -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-      <TaskColumn v-for="column in columns" :key="column.id" :title="column.title" :tasks="column.tasks" :color="column.color" :status="column.id" @change-status="changeTaskStatus" @drop-task="handleTaskDrop" @edit-task="openEditTask" />
+      <TaskColumn 
+        v-for="column in columns" 
+        :key="column.id" 
+        :title="column.title" 
+        :tasks="column.tasks" 
+        :color="column.color" 
+        :status="column.id" 
+        @change-status="changeTaskStatus" 
+        @drop-task="handleTaskDrop" 
+        @edit-task="openEditTask" 
+      />
     </div>
 
+    <!-- Modal d'ajout -->
     <div v-if="showAddForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <form @submit.prevent="addTask" class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
-        <h2 class="text-xl font-bold">
-          Add New Task
-        </h2>
-        <input v-model="newTask.title" required placeholder="Task title" class="w-full border rounded-lg p-2"/>
+        <h2 class="text-xl font-bold">Add New Task</h2>
+        
+        <input v-model="newTask.title" required placeholder="Task title" class="w-full border rounded-lg p-2" />
+        
         <label class="block text-sm">Area</label>
         <select v-model="newTask.area" class="w-full border rounded-lg p-2">
-          <option v-for="area in areas.filter (area => area !== 'All')" :key="area">
-            {{area}}
+          <option v-for="area in areas.filter(a => a !== 'All')" :key="area" :value="area">
+            {{ area }}
           </option>
         </select>
 
         <label class="block text-sm">Assigned To</label>
         <select v-model="newTask.assignedTo" class="w-full border rounded-lg p-2">
-          <option v-for="roomate in roomates.filter(roomate => roomate !== 'All')" :key="roomate">
-            {{roomate}}
+          <option v-for="roomate in roomates.filter(r => r !== 'All')" :key="roomate" :value="roomate">
+            {{ roomate }}
           </option>
         </select>
 
         <label class="block text-sm">Priority</label>
         <select v-model="newTask.priority" class="w-full border rounded-lg p-2">
-          <option>Low</option>
-          <option>Medium</option>
-          <option>High</option>
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
         </select>
 
         <label class="block text-sm">Due Date</label>
-        <input v-model="newTask.dueDate" type="date" required class="w-full border rounded-lg p-2"/>
+        <input v-model="newTask.dueDate" type="date" required class="w-full border rounded-lg p-2" />
+        
         <div class="flex justify-end gap-3 pt-3">
-          <button type="button" @click="showAddForm=false" class="px-4 py-2 rounded-lg border">
+          <button type="button" @click="showAddForm = false" class="px-4 py-2 rounded-lg border">
             Cancel
           </button>
           <button type="submit" class="px-4 py-2 bg-violet-500 text-white rounded-lg">
@@ -254,43 +280,50 @@ function deleteTask(){
         </div>
       </form>
     </div>
-    <div v-if="showEditForm && editingTask" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" >
+
+    <!-- Modal d'édition -->
+    <div v-if="showEditForm && editingTask" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <form @submit.prevent="saveTask" class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
         <div class="flex justify-between items-center"> 
           <h2 class="text-xl font-bold text-gray-800">Edit Task</h2>
-          <button type="button" @click="showEditForm=false" class="text-gray-400 hover:text-gray-700"> X </button>
+          <button type="button" @click="showEditForm = false" class="text-gray-400 hover:text-gray-700">✕</button>
         </div>
+        
         <div>
           <label class="block text-sm mb-1">Task Title</label>
-          <input v-model="editingTask.title" required placeholder="Task title" class="w-full border rounded-lg p-2"/>
+          <input v-model="editingTask.title" required placeholder="Task title" class="w-full border rounded-lg p-2" />
         </div>
+        
         <div>
           <label class="block text-sm mb-1">Area</label>
           <select v-model="editingTask.area" class="w-full border rounded-lg p-2">
-            <option v-for="area in areas.filter (area => area !== 'All')" :key="area" :value="area">
-              {{area}}
+            <option v-for="area in areas.filter(a => a !== 'All')" :key="area" :value="area">
+              {{ area }}
             </option>
           </select>
         </div>
+        
         <div>
           <label class="block text-sm mb-1">Assigned To</label>
           <select v-model="editingTask.assignedTo" class="w-full border rounded-lg p-2">
-            <option v-for="roomate in roomates.filter(roomate => roomate !== 'All')" :key="roomate" :value="roomate">
-              {{roomate}}
+            <option v-for="roomate in roomates.filter(r => r !== 'All')" :key="roomate" :value="roomate">
+              {{ roomate }}
             </option>
           </select>
         </div>
+        
         <div>
           <label class="block text-sm mb-1">Priority</label>
           <select v-model="editingTask.priority" class="w-full border rounded-lg p-2">
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
           </select>
         </div>
+        
         <div>
           <label class="block text-sm mb-1">Due Date</label>
-          <input v-model="editingTask.dueDate" type="date" required class="w-full border rounded-lg p-2"/>
+          <input v-model="editingTask.dueDate" type="date" required class="w-full border rounded-lg p-2" />
         </div>
 
         <div class="flex justify-between items-center pt-4">
@@ -298,7 +331,7 @@ function deleteTask(){
             🗑️ Delete
           </button>
           <div class="flex gap-2">
-            <button type="button" @click="showEditForm=false" class="px-4 py-2 rounded-lg border">
+            <button type="button" @click="showEditForm = false" class="px-4 py-2 rounded-lg border">
               Cancel
             </button>
             <button type="submit" class="px-4 py-2 bg-violet-500 text-white hover:bg-violet-600 rounded-lg">
@@ -306,9 +339,7 @@ function deleteTask(){
             </button>
           </div>
         </div>
-
       </form>
-
     </div>
   </main>
 </template>

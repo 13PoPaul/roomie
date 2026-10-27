@@ -1,27 +1,32 @@
 module.exports = (connex, Sequelize) => {
   const Task = connex.define('task', {
-    title: {
+    task_id: {
+      type: Sequelize.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
+    task_title: {
       type: Sequelize.STRING(100),
       allowNull: false
     },
-    description: {
+    task_description: {
       type: Sequelize.STRING(200)
     },
-    location: {
-      type: Sequelize.STRING(50) // Cuisine, Salon, etc.
+    task_location: {
+      type: Sequelize.STRING(50)
     },
-    dueDate: {
+    task_duedate: {
       type: Sequelize.DATE
     },
-    priority: {
+    task_priority: {
       type: Sequelize.STRING(50),
       defaultValue: 'medium'
     },
-    status: {
+    task_status: {
       type: Sequelize.STRING(50),
-      defaultValue: 'pending' // pending, in-progress, completed
+      defaultValue: 'todo'
     }
-  })
+  }, { timestamps: true })
 
   return Task
 }
