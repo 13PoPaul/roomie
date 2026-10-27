@@ -20,8 +20,15 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to Roomie server.' })
 })
 
+// Register routes
+require('./app/routes/roommate.route')(app)
+
 // Set port and listen for requests
 const PORT = 8080
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`)
 })
+
+// Sync database models
+const db = require('./app/models')
+db.connex.sync()
