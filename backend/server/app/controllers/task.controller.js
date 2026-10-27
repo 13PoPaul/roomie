@@ -20,22 +20,36 @@ exports.create = (req, res) => {
   }
 
   Task.create(task)
-    .then(data => res.send(data))
+    .then(async createdTask => {
+      // Si un user_id a été sélectionné dans le formulaire
+      if (req.body.user_id) {
+        await createdTask.setUsers([req.body.user_id]) // Remplit la table pivot is_assigned_to
+      }
+      res.send(createdTask)
+    })
     .catch(err => {
-      console.error(err)
       res.status(500).send({
         message: err.message || 'Error occurred while creating the task.'
       })
     })
 }
 
-// 2. Récupérer toutes les tâches (avec filtre par dashboard optionnel)
+// 2. Récupérer toutes les tâches (la fonction qui manquait)
 exports.findAll = (req, res) => {
   const dashboardId = req.query.dashboard_id || req.query.roomId
   const condition = dashboardId ? { dashboard_id: dashboardId } : null
 
-  Task.findAll({ where: condition })
-    .then(data => res.send(data))
+  Task.findAll({
+    where: condition,
+    include: [{
+      model: db.users,
+      attributes: ['user_id', 'user_name'],
+      through: { attributes: [] } // Masque les colonnes techniques de is_assigned_to
+    }]
+  })
+    .then(data => {
+      res.send(data)
+    })
     .catch(err => {
       res.status(500).send({
         message: err.message || 'Error occurred while retrieving tasks.'

@@ -12,6 +12,11 @@ class DashboardDataService {
   get(id) {
     return http.get(`/dashboards/${id}`)
   }
+
+  // AJOUTER CETTE MÉTHODE :
+  getMembers(dashboardId) {
+    return http.get(`/dashboards/${dashboardId}/users`)
+  }
 }
 
 export default new DashboardDataService()
