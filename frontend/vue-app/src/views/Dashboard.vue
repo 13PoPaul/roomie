@@ -17,15 +17,14 @@ const roomates = ['All', 'Edouard', 'Clemence', 'Paul', 'Jeanne']
 function loadTasks() {
   TaskDataService.getAll()
     .then(response => {
-      // Transformation des données reçues pour correspondre aux propriétés du front
       tasks.value = response.data.map(task => ({
-        id: task.id,
-        title: task.title,
-        area: task.location || 'Other',
-        assignedTo: task.description || 'Edouard',
-        priority: task.priority || 'Medium',
-        dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
-        status: task.status || 'todo'
+        id: task.task_id || task.id,
+        title: task.task_title || task.title,
+        area: task.task_location || task.location || 'Other',
+        assignedTo: task.task_description || task.description || 'Edouard',
+        priority: task.task_priority || task.priority || 'Medium',
+        dueDate: (task.task_duedate || task.dueDate) ? (task.task_duedate || task.dueDate).split('T')[0] : '',
+        status: task.task_status || task.status || 'todo'
       }))
     })
     .catch(error => {
@@ -100,7 +99,7 @@ function addTask() {
   const title = newTask.value.title.trim()
   if (!title || !newTask.value.dueDate) return
 
-  // Préparation du payload pour le modèle Sequelize
+  // Préparation du payload compatible avec le contrôleur
   const payload = {
     title: title,
     location: newTask.value.area,
@@ -112,16 +111,22 @@ function addTask() {
 
   TaskDataService.create(payload)
     .then(response => {
-      // Ajout immédiat de la tâche renvoyée avec son ID généré par MySQL
+      const created = response.data
+
+      // Ajout dans la liste réactive avec les clés réelles renvoyées par MySQL
       tasks.value.push({
-        id: response.data.id,
-        title: response.data.title,
-        area: response.data.location || newTask.value.area,
-        assignedTo: response.data.description || newTask.value.assignedTo,
-        priority: response.data.priority,
-        dueDate: response.data.dueDate ? response.data.dueDate.split('T')[0] : '',
-        status: response.data.status
+        id: created.task_id || created.id,
+        title: created.task_title || created.title || title,
+        area: created.task_location || created.location || newTask.value.area,
+        assignedTo: created.task_description || created.description || newTask.value.assignedTo,
+        priority: created.task_priority || created.priority || newTask.value.priority,
+        dueDate: (created.task_duedate || created.dueDate) 
+          ? (created.task_duedate || created.dueDate).split('T')[0] 
+          : newTask.value.dueDate,
+        status: created.task_status || created.status || newTask.value.status || 'todo'
       })
+
+      // Fermeture de la boîte modale et réinitialisation
       showAddForm.value = false
       newTask.value = { 
         title: '',

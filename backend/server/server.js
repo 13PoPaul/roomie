@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
 
 // Register routes
 require('./app/routes/task.route')(app)
-require('./app/routes/room.route')(app)
+require('./app/routes/dashboard.route')(app)
 
 // Set port and listen for requests
 const PORT = 8080
@@ -32,4 +32,4 @@ app.listen(PORT, () => {
 
 // Sync database models
 const db = require('./app/models')
-db.connex.sync()
+db.connex.sync({ force: true })
