@@ -16,7 +16,7 @@ function joinDashboard(){
     }
 
     try{
-        const dashboards = JSON.parse(localeStorage.getItem('roomie-dashboards')|| '[]') 
+        const dashboards = JSON.parse(localStorage.getItem('roomie-dashboards')|| '[]') 
         const dashboard= dashboards.find(dashboard => dashboard.invitationCode==code)
 
         if (!dashboard){
@@ -34,7 +34,7 @@ function joinDashboard(){
 }
 
 function goBack(){
-    router.push('dashboard-selection')
+    router.push('/dashboard-selection')
 }
 </script>
 

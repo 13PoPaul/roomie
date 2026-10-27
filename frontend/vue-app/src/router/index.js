@@ -13,7 +13,7 @@ const routes = [
   {path:'/dashboard-selection', name: 'dashboard-selection', component: DashboardSelection},
   {path:'/create-dashboard', name:'create-dashboard', component: CreateDashboard},
   { path: '/dashboard', name: 'dashboard', component: Dashboard },
-  {path: '/join-dashboard', name: 'join-dashboard', component: Dashboard}
+  {path: '/join-dashboard', name: 'join-dashboard', component: JoinDashboard}
 ]
 
 const router = createRouter({

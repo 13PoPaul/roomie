@@ -7,9 +7,9 @@ function goToCreate(){
     router.push({name : 'create-dashboard'})
 }
 
-//function goToJoin(){
-//    router.push({name : 'join-dashboard'})
-//}
+function goToJoin(){
+    router.push({name : 'join-dashboard'})
+}
 </script>
 
 <template>
