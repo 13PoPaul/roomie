@@ -5,7 +5,7 @@ import AppHeader from './components/AppHeader.vue'
 
 
 const route = useRoute()
-const headerUse=['dashboard-selection', 'create-dashboard', 'dashboard']
+const headerUse=['dashboard-selection', 'create-dashboard', 'join-dashboard', 'dashboard']
 const showHeader=computed(()=>headerUse.includes(route.name))
 </script>
 
