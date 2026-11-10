@@ -2,11 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import TaskColumn from '../components/TaskColumn.vue'
 import TaskDataService from '../services/TaskDataService'
-import DashboardDataService from '../services/DashboardDataService' // <-- AJOUTER CETTE LIGNE
+import DashboardDataService from '../services/DashboardDataService'
 
-// Liste réactive alimentée par la base de données
 const tasks = ref([])
 const errorMessage = ref('')
+const currentDashboardId = ref(null)
 
 const selectedArea = ref('All') 
 const selectedRoomate = ref('All')
@@ -14,11 +14,34 @@ const selectedRoomate = ref('All')
 const areas = ['All', 'Bathroom', 'Bedroom', 'Kitchen', 'Other']
 const roommates = ref([])
 
-// 1. Charger les tâches depuis le serveur au montage du composant
+function getActiveDashboardId() {
+  const savedRoom = localStorage.getItem('roomie-active-room')
+  if (savedRoom) {
+    try {
+      const parsed = JSON.parse(savedRoom)
+      return parsed.dashboard_id || parsed.id
+    } catch {
+      // Ignorer si ce n'est pas du JSON
+    }
+  }
+  return localStorage.getItem('roomie-active-dashboard')
+}
+
+// 1. Charger les tâches associées au dashboard courant
 function loadTasks() {
+  const id = getActiveDashboardId()
+  currentDashboardId.value = id
+
+  if (!id) {
+    errorMessage.value = 'No active dashboard selected.'
+    return
+  }
   TaskDataService.getAll()
     .then(response => {
-      tasks.value = response.data.map(task => ({
+      const allTasks = response.data || []
+      const roomTasks = allTasks.filter(t => !t.dashboard_id || String(t.dashboard_id) === String(id))
+
+      tasks.value = roomTasks.map(task => ({
         id: task.task_id || task.id,
         title: task.task_title || task.title,
         area: task.task_location || task.location || 'Other',
@@ -34,10 +57,38 @@ function loadTasks() {
     })
 }
 
+function loadRoommates() {
+  const savedRoom = localStorage.getItem('roomie-active-room')
+  let dashboardId = null
+
+  if (savedRoom) {
+    try {
+      const parsed = JSON.parse(savedRoom)
+      dashboardId = parsed.dashboard_id || parsed.id
+    } catch {
+      // Ignorer si ce n'est pas du JSON
+    }
+  }
+
+  if (!dashboardId) {
+    dashboardId = localStorage.getItem('roomie-active-dashboard')
+  }
+
+  if (!dashboardId) return
+
+  DashboardDataService.getMembers(dashboardId)
+    .then(response => {
+      roommates.value = response.data
+    })
+    .catch(err => console.error('Erreur chargement colocataires :', err))
+}
+
+
 onMounted(() => {
   loadTasks()
   loadRoommates()
 })
+
 
 // Filtrage dynamique
 const filteredTasks = computed(() => {
@@ -191,20 +242,6 @@ function deleteTask() {
       editingTask.value = null
     })
     .catch(err => console.error('Erreur lors de la suppression :', err))
-}
-
-function loadRoommates() {
-  const savedRoom = localStorage.getItem('roomie-active-room')
-  const activeRoom = savedRoom ? JSON.parse(savedRoom) : null
-  const dashboardId = activeRoom?.dashboard_id || activeRoom?.id
-
-  if (!dashboardId) return
-
-  DashboardDataService.getMembers(dashboardId)
-    .then(response => {
-      roommates.value = response.data
-    })
-    .catch(err => console.error('Erreur chargement colocataires :', err))
 }
 
 </script>

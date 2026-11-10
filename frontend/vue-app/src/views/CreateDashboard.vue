@@ -6,42 +6,53 @@ import RoomDataService from '../services/DashBoardDataService'
 const router = useRouter()
 const dashboardName = ref('')
 
-// Génère un code de 9 caractères (ex: RM-F4A8B1) pour tenir dans VARCHAR(10)
+// Génère un code de 9 caractères au total (ex: RM-E4B1F8) pour tenir dans un VARCHAR(10)
 function generateCode() {
-  return 'ROOMIE-' + crypto.randomUUID().slice(0, 6).toUpperCase()
+  return 'RM-' + crypto.randomUUID().slice(0, 6).toUpperCase()
 }
 
 const invitationCode = ref(generateCode())
 const error = ref('')
+const loading = ref(false)
 
-function createDashboard() {
+async function createDashboard() {
   const name = dashboardName.value.trim()
   if (!name) {
     error.value = 'Please enter a valid dashboard name.'
     return
   }
 
+  loading.value = true
+  error.value = ''
+
   const payload = {
     name: name,
     code: invitationCode.value
   }
 
-  // Envoi au serveur Express / MySQL
-  RoomDataService.create(payload)
-    .then(response => {
-      // response.data contient la ligne créée dans MySQL avec son vrai ID numérique
-      const createdRoom = response.data
+  try {
+    const response = await RoomDataService.create(payload)
+    const createdRoom = response.data
 
-      // Mémoriser la colocation active dans le navigateur
-      localStorage.setItem('roomie-active-room', JSON.stringify(createdRoom))
+    const roomId = createdRoom.dashboard_id || createdRoom.id
 
-      // Redirection vers le tableau de bord
-      router.push('/dashboard')
-    })
-    .catch(err => {
-      error.value = err.response?.data?.message || 'Error creating the dashboard. Please try again.'
-      console.error(err)
-    })
+    // 1. Sauvegarder sous les deux formats pour satisfaire toutes vos vues
+    localStorage.setItem('roomie-active-dashboard', roomId)
+    localStorage.setItem('roomie-active-room', JSON.stringify(createdRoom))
+
+    // 2. Mettre à jour la liste locale des dashboards
+    const localDashboards = JSON.parse(localStorage.getItem('roomie-dashboards') || '[]')
+    localDashboards.push(createdRoom)
+    localStorage.setItem('roomie-dashboards', JSON.stringify(localDashboards))
+
+    // 3. Redirection
+    router.push('/dashboard')
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Error creating the dashboard. Please try again.'
+    console.error('Erreur API :', err)
+  } finally {
+    loading.value = false
+  }
 }
 
 function goBack() {
@@ -82,9 +93,10 @@ function goBack() {
 
         <button 
           type="submit" 
-          class="w-full bg-violet-500 hover:bg-violet-600 text-white font-semibold py-3 rounded-xl shadow-md transition cursor-pointer"
+          :disabled="loading"
+          class="w-full bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl shadow-md transition cursor-pointer"
         >
-          Create Dashboard
+          {{ loading ? 'Creating...' : 'Create Dashboard' }}
         </button>
       </form>
 
