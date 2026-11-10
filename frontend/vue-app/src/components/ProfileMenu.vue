@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import DashboardDataService from '../services/DashBoardDataService'
 
 const router = useRouter()
-const showCode = ref(false)
 const copyMessage = ref('')
 const activeDashboard = ref(null)
 
@@ -16,17 +15,13 @@ async function loadDashboard() {
     return
   }
 
-  // 1. Appel direct à l'API MySQL pour récupérer le dashboard actuel
   try {
     const response = await DashboardDataService.get(activeId)
     activeDashboard.value = response.data
   } catch (error) {
-    console.warn('Impossible de charger le dashboard depuis l’API, essai depuis le cache local :', error)
-    
-    // Fallback de secours sur le localStorage si le serveur ne répond pas
+    console.warn('Chargement depuis le cache local :', error)
     try {
       const dashboards = JSON.parse(localStorage.getItem('roomie-dashboards') || '[]')
-      // Comparaison souple == (pour gérer string vs number) et vérification dashboard_id || id
       activeDashboard.value = dashboards.find(d => (d.dashboard_id || d.id) == activeId) || null
     } catch {
       activeDashboard.value = null
@@ -36,7 +31,7 @@ async function loadDashboard() {
 
 onMounted(loadDashboard)
 
-// Prend en compte à la fois invitation_code (format MySQL) et invitationCode
+// Récupère la propriété MySQL (invitation_code) ou JavaScript (invitationCode)
 const invitationCode = computed(() => {
   return activeDashboard.value?.invitation_code || activeDashboard.value?.invitationCode || ''
 })
@@ -75,29 +70,17 @@ function leaveDashboard() {
       My Profile
     </h2>
     <div class="mb-4">
-      <div class="flex items-center justify-between mb-2">
-        <p class="text-sm font-semibold text-gray-700">
-          Invitation Code 
-        </p>
-        <button 
-          v-if="invitationCode"
-          type="button" 
-          @click="showCode = !showCode" 
-          class="text-sm text-violet-600 hover:underline cursor-pointer"
-        >
-          {{ showCode ? 'Hide' : 'Show' }}
-        </button>
-      </div>
+      <p class="text-sm font-semibold text-gray-700 mb-2">
+        Invitation Code 
+      </p>
 
+      <!-- Le code est maintenant affiché directement et en permanence -->
       <div class="bg-violet-50 rounded-lg p-3 text-sm font-medium text-violet-700 text-center">
         <span v-if="!invitationCode" class="text-gray-400">
           No active invitation code
         </span>
-        <span v-else-if="showCode" class="font-bold tracking-wider">
+        <span v-else class="font-bold tracking-wider">
           {{ invitationCode }}
-        </span>
-        <span v-else class="tracking-widest">
-          ••••••••••
         </span>
       </div>
 
@@ -115,7 +98,7 @@ function leaveDashboard() {
       </p>
     </div>
 
-    <hr class="border-gray-200 my-4"/>
+    <hr class="border-gray-200 my-4" />
     <button type="button" @click="logout" class="w-full text-left px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition cursor-pointer">
       Log Out
     </button>

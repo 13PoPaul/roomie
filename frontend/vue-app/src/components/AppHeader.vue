@@ -24,31 +24,41 @@ function closeProfileMenu() {
         <span class="text-xl font-bold text-violet-600">Roomie</span>
       </div>
 
-      <div class="relative">
-        <!-- Bouton avec classe group et hover pour passer en violet au survol -->
+      <!-- Le conteneur reste en z-50 pour que le bouton soit au-dessus de l'overlay de fermeture -->
+      <div class="relative z-50">
+        <!-- Overlay invisible pour fermer le menu au clic en dehors -->
+        <div 
+          v-if="showProfileMenu && isDashboard" 
+          class="fixed inset-0 z-40" 
+          @click="closeProfileMenu"
+        ></div>
+
+        <!-- Bouton utilisateur : ne devient violet QUE lors du survol (hover) -->
         <button 
           type="button" 
           @click="toggleProfileMenu" 
           :aria-expanded="showProfileMenu" 
           aria-label="Open profile menu" 
-          class="group flex items-center gap-3 rounded-xl p-2 hover:bg-violet-50 transition cursor-pointer"
+          class="group relative z-50 flex items-center gap-3 rounded-xl p-2 hover:bg-violet-50 transition-colors cursor-pointer"
         >
           <div class="text-right">
-            <p class="text-sm font-semibold text-gray-900 group-hover:text-violet-600 transition">
+            <p class="text-sm font-semibold text-gray-900 group-hover:text-violet-600 transition-colors">
               Paul Iglesias
             </p>
-            <p class="text-xs text-gray-400 group-hover:text-violet-400 transition">
+            <p class="text-xs text-gray-400 group-hover:text-violet-400 transition-colors">
               Student
             </p>
           </div>
-          <div class="bg-violet-500 group-hover:bg-violet-600 text-white font-semibold rounded-full w-9 h-9 flex items-center justify-center transition shadow-sm">
+          <div class="bg-violet-500 group-hover:bg-violet-600 text-white font-semibold rounded-full w-9 h-9 flex items-center justify-center transition-colors shadow-sm">
             P
           </div>
-          <!-- La flèche a été supprimée ici -->
         </button>
 
-        <div v-if="showProfileMenu && isDashboard" class="fixed inset-0 z-40" @click="closeProfileMenu"></div>
-        <div v-if="showProfileMenu && isDashboard" class="absolute right-0 top-full mt-3 z-50">
+        <!-- Pop-up ProfileMenu -->
+        <div 
+          v-if="showProfileMenu && isDashboard" 
+          class="absolute right-0 top-full mt-3 z-50"
+        >
           <ProfileMenu />
         </div>
       </div>

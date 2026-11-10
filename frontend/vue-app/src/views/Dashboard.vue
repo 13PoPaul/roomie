@@ -2,11 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import TaskColumn from '../components/TaskColumn.vue'
 import TaskDataService from '../services/TaskDataService'
-import DashboardDataService from '../services/DashboardDataService'
+import DashboardDataService from '../services/DashBoardDataService'
 
+// Liste réactive alimentée par la base de données
 const tasks = ref([])
 const errorMessage = ref('')
-const currentDashboardId = ref(null)
 
 const selectedArea = ref('All') 
 const selectedRoomate = ref('All')
@@ -14,12 +14,13 @@ const selectedRoomate = ref('All')
 const areas = ['All', 'Bathroom', 'Bedroom', 'Kitchen', 'Other']
 const roommates = ref([])
 
+// Récupère l'ID du dashboard actif de manière fiable
 function getActiveDashboardId() {
   const savedRoom = localStorage.getItem('roomie-active-room')
   if (savedRoom) {
     try {
       const parsed = JSON.parse(savedRoom)
-      return parsed.dashboard_id || parsed.id
+      if (parsed.dashboard_id || parsed.id) return parsed.dashboard_id || parsed.id
     } catch {
       // Ignorer si ce n'est pas du JSON
     }
@@ -27,21 +28,19 @@ function getActiveDashboardId() {
   return localStorage.getItem('roomie-active-dashboard')
 }
 
-// 1. Charger les tâches associées au dashboard courant
+// 1. Charger uniquement les tâches du dashboard actif
 function loadTasks() {
-  const id = getActiveDashboardId()
-  currentDashboardId.value = id
+  const dashboardId = getActiveDashboardId()
 
-  if (!id) {
+  if (!dashboardId) {
     errorMessage.value = 'No active dashboard selected.'
     return
   }
-  TaskDataService.getAll()
-    .then(response => {
-      const allTasks = response.data || []
-      const roomTasks = allTasks.filter(t => !t.dashboard_id || String(t.dashboard_id) === String(id))
 
-      tasks.value = roomTasks.map(task => ({
+  // Envoi du dashboardId au backend (/api/tasks?roomId=...)
+  TaskDataService.getAll(dashboardId)
+    .then(response => {
+      tasks.value = response.data.map(task => ({
         id: task.task_id || task.id,
         title: task.task_title || task.title,
         area: task.task_location || task.location || 'Other',
@@ -57,38 +56,22 @@ function loadTasks() {
     })
 }
 
+// 2. Charger les colocataires du dashboard actif
 function loadRoommates() {
-  const savedRoom = localStorage.getItem('roomie-active-room')
-  let dashboardId = null
-
-  if (savedRoom) {
-    try {
-      const parsed = JSON.parse(savedRoom)
-      dashboardId = parsed.dashboard_id || parsed.id
-    } catch {
-      // Ignorer si ce n'est pas du JSON
-    }
-  }
-
-  if (!dashboardId) {
-    dashboardId = localStorage.getItem('roomie-active-dashboard')
-  }
-
+  const dashboardId = getActiveDashboardId()
   if (!dashboardId) return
 
   DashboardDataService.getMembers(dashboardId)
     .then(response => {
-      roommates.value = response.data
+      roommates.value = response.data || []
     })
     .catch(err => console.error('Erreur chargement colocataires :', err))
 }
-
 
 onMounted(() => {
   loadTasks()
   loadRoommates()
 })
-
 
 // Filtrage dynamique
 const filteredTasks = computed(() => {
@@ -121,7 +104,7 @@ const columns = computed(() => [
   }
 ])
 
-// 2. Mettre à jour le statut d'une tâche (clic ou drag & drop)
+// 3. Mettre à jour le statut d'une tâche
 function changeTaskStatus(id, newStatus) {
   if (!['todo', 'doing', 'done'].includes(newStatus)) return
 
@@ -137,7 +120,7 @@ function handleTaskDrop(taskId, newStatus) {
   changeTaskStatus(Number(taskId), newStatus)
 }
 
-// 3. Formulaire d'ajout d'une tâche
+// 4. Formulaire d'ajout d'une tâche liée au dashboard actif
 const showAddForm = ref(false)
 const newTask = ref({
   title: '',
@@ -150,23 +133,24 @@ const newTask = ref({
 
 function addTask() {
   const title = newTask.value.title.trim()
-  if (!title || !newTask.value.dueDate) return
+  const dashboardId = getActiveDashboardId()
+  if (!title || !newTask.value.dueDate || !dashboardId) return
 
-  // Préparation du payload compatible avec le contrôleur
+  // On injecte le dashboard_id pour lier la tâche à la room active
   const payload = {
     title: title,
     location: newTask.value.area,
     description: newTask.value.assignedTo,
     priority: newTask.value.priority,
     dueDate: newTask.value.dueDate,
-    status: newTask.value.status
+    status: newTask.value.status,
+    dashboard_id: Number(dashboardId)
   }
 
   TaskDataService.create(payload)
     .then(response => {
       const created = response.data
 
-      // Ajout dans la liste réactive avec les clés réelles renvoyées par MySQL
       tasks.value.push({
         id: created.task_id || created.id,
         title: created.task_title || created.title || title,
@@ -179,7 +163,6 @@ function addTask() {
         status: created.task_status || created.status || newTask.value.status || 'todo'
       })
 
-      // Fermeture de la boîte modale et réinitialisation
       showAddForm.value = false
       newTask.value = { 
         title: '',
@@ -193,7 +176,7 @@ function addTask() {
     .catch(err => console.error('Erreur lors de la création de la tâche :', err))
 }
 
-// 4. Édition et suppression
+// 5. Édition et suppression
 const showEditForm = ref(false)
 const editingTask = ref(null)
 
@@ -243,7 +226,6 @@ function deleteTask() {
     })
     .catch(err => console.error('Erreur lors de la suppression :', err))
 }
-
 </script>
 
 <template>
