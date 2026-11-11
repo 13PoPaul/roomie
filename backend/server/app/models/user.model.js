@@ -9,16 +9,26 @@ module.exports = (connex, Sequelize) => {
       type: Sequelize.STRING(50),
       allowNull: false
     },
+    user_email: {
+      type: Sequelize.STRING(100),
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: true
+      }
+    },
     user_password: {
       type: Sequelize.STRING(255),
       allowNull: false
     },
-    user_email: {
-      type: Sequelize.STRING(100),
-      allowNull: false,
-      unique: true
+    dashboard_id: {
+      type: Sequelize.INTEGER,
+      allowNull: true
     }
-  }, { timestamps: true })
+  }, { 
+    tableName: 'users',
+    timestamps: true 
+  })
 
   return User
 }
