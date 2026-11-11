@@ -44,7 +44,8 @@ function loadTasks() {
         id: task.task_id || task.id,
         title: task.task_title || task.title,
         area: task.task_location || task.location || 'Other',
-        assignedTo: task.task_description || task.description || 'Edouard',
+        assignedTo: task.users?.[0]?.user_name || 'Unassigned',
+        assignedUserId: task.users?.[0]?.user_id ?? null,
         priority: task.task_priority || task.priority || 'Medium',
         dueDate: (task.task_duedate || task.dueDate) ? (task.task_duedate || task.dueDate).split('T')[0] : '',
         status: task.task_status || task.status || 'todo'
@@ -82,25 +83,40 @@ const filteredTasks = computed(() => {
   })
 })
 
+const priorityOrder = {
+  high: 0,
+  medium: 1,
+  low: 2
+}
+
+function sortByPriority(taskList) {
+  return [...taskList].sort((a, b) => {
+    const priorityA = priorityOrder[String(a.priority).toLowerCase()] ?? 3
+    const priorityB = priorityOrder[String(b.priority).toLowerCase()] ?? 3
+
+    return priorityA - priorityB
+  })
+}
+
 // Répartition dans les trois colonnes du Kanban
 const columns = computed(() => [
   {
     id: 'todo',
     title: 'To Do',
     color: 'bg-purple-100',
-    tasks: filteredTasks.value.filter(task => task.status === 'todo')
+    tasks: sortByPriority(filteredTasks.value.filter(task => task.status === 'todo'))
   },
   {
     id: 'doing',
     title: 'Doing',
     color: 'bg-orange-100',
-    tasks: filteredTasks.value.filter(task => task.status === 'doing')
+    tasks: sortByPriority(filteredTasks.value.filter(task => task.status === 'doing'))
   },
   {
     id: 'done',
     title: 'Done',
     color: 'bg-green-100',
-    tasks: filteredTasks.value.filter(task => task.status === 'done')
+    tasks: sortByPriority(filteredTasks.value.filter(task => task.status === 'done'))
   }
 ])
 
@@ -125,7 +141,7 @@ const showAddForm = ref(false)
 const newTask = ref({
   title: '',
   area: 'Bathroom',
-  assignedTo: 'Edouard',
+  assignedTo: null,
   priority: 'Medium',
   dueDate: '',
   status: 'todo'
@@ -134,17 +150,17 @@ const newTask = ref({
 function addTask() {
   const title = newTask.value.title.trim()
   const dashboardId = getActiveDashboardId()
-  if (!title || !newTask.value.dueDate || !dashboardId) return
+  if (!title || !newTask.value.dueDate || !dashboardId || newTask.value.assignedTo == null) return
 
   // On injecte le dashboard_id pour lier la tâche à la room active
   const payload = {
-    title: title,
-    location: newTask.value.area,
-    description: newTask.value.assignedTo,
-    priority: newTask.value.priority,
-    dueDate: newTask.value.dueDate,
-    status: newTask.value.status,
-    dashboard_id: Number(dashboardId)
+  title: title,
+  location: newTask.value.area,
+  user_id: newTask.value.assignedTo,
+  priority: newTask.value.priority,
+  dueDate: newTask.value.dueDate,
+  status: newTask.value.status,
+  dashboard_id: Number(dashboardId)
   }
 
   TaskDataService.create(payload)
@@ -155,7 +171,8 @@ function addTask() {
         id: created.task_id || created.id,
         title: created.task_title || created.title || title,
         area: created.task_location || created.location || newTask.value.area,
-        assignedTo: created.task_description || created.description || newTask.value.assignedTo,
+        assignedTo: roommates.value.find(user => user.user_id === Number(newTask.value.assignedTo))?.user_name || 'Unassigned',
+        assignedUserId: Number(newTask.value.assignedTo),
         priority: created.task_priority || created.priority || newTask.value.priority,
         dueDate: (created.task_duedate || created.dueDate) 
           ? (created.task_duedate || created.dueDate).split('T')[0] 
@@ -167,7 +184,7 @@ function addTask() {
       newTask.value = { 
         title: '',
         area: 'Bathroom',
-        assignedTo: 'Edouard',
+        assignedTo: null,
         priority: 'Medium',
         dueDate: '',
         status: 'todo'
@@ -183,7 +200,12 @@ const editingTask = ref(null)
 function openEditTask(taskId) {
   const task = tasks.value.find(t => t.id === taskId)
   if (!task) return
-  editingTask.value = { ...task }
+
+  editingTask.value = {
+    ...task,
+    assignedUserId: task.assignedUserId ?? null
+  }
+
   showEditForm.value = true
 }
 
@@ -193,19 +215,25 @@ function saveTask() {
   if (!title || !editingTask.value.dueDate) return
 
   const payload = {
-    title: title,
-    location: editingTask.value.area,
-    description: editingTask.value.assignedTo,
-    priority: editingTask.value.priority,
-    dueDate: editingTask.value.dueDate,
-    status: editingTask.value.status
+  title: title,
+  location: editingTask.value.area,
+  user_id: editingTask.value.assignedUserId,
+  priority: editingTask.value.priority,
+  dueDate: editingTask.value.dueDate,
+  status: editingTask.value.status
   }
 
   TaskDataService.update(editingTask.value.id, payload)
     .then(() => {
       const task = tasks.value.find(t => t.id === editingTask.value.id)
       if (task) {
-        Object.assign(task, { ...editingTask.value, title })
+        const selectedUser = roommates.value.find(
+          user => user.user_id === Number(editingTask.value.assignedUserId)
+      )
+      Object.assign(task, {
+        ...editingTask.value,
+        title,
+        assignedTo: selectedUser?.user_name || 'Unassigned'})
       }
       showEditForm.value = false
       editingTask.value = null
@@ -297,8 +325,10 @@ function deleteTask() {
 
         <!-- Dynamic roommate assignment list from MySQL -->
         <label class="block text-sm">Assigned To</label>
-        <select v-model="newTask.assignedTo" class="w-full border rounded-lg p-2">
-          <option v-for="user in roommates" :key="user.user_id" :value="user.user_name">
+        
+        <select v-model="newTask.assignedTo" required class="w-full border rounded-lg p-2">
+          <option :value="null">Select a roommate</option>
+          <option v-for="user in roommates" :key="user.user_id" :value="user.user_id">
             {{ user.user_name }}
           </option>
         </select>
@@ -349,8 +379,9 @@ function deleteTask() {
         <!-- Dynamic roommate assignment list from MySQL -->
         <div>
           <label class="block text-sm mb-1">Assigned To</label>
-          <select v-model="editingTask.assignedTo" class="w-full border rounded-lg p-2">
-            <option v-for="user in roommates" :key="user.user_id" :value="user.user_name">
+          <select v-model="editingTask.assignedUserId" required class="w-full border rounded-lg p-2">
+            <option :value="null" disabled>Select a roommate</option>
+            <option v-for="user in roommates" :key="user.user_id" :value="user.user_id">
               {{ user.user_name }}
             </option>
           </select>
