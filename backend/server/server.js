@@ -1,15 +1,20 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
+// 1. AJOUT : Import de cookie-parser
+const cookieParser = require('cookie-parser')
 
 const app = express()
 
 // Allow requests from the Vue.js frontend
 const corsOption = {
   origin: 'http://localhost:5173',
-  credentials: true
+  credentials: true // Permet l'envoi des cookies sécurisés entre le front et le back
 }
 app.use(cors(corsOption))
+
+// 2. AJOUT : Activation du parser de cookies AVANT les routes
+app.use(cookieParser())
 
 // Parse requests of content-type - application/json and application/x-www-form-urlencoded
 app.use(bodyParser.json())
@@ -23,6 +28,8 @@ app.get('/', (req, res) => {
 // Register routes
 require('./app/routes/task.route')(app)
 require('./app/routes/dashboard.route')(app)
+// 3. AJOUT : Enregistrement des routes d'authentification
+require('./app/routes/user.route')(app)
 
 // Set port and listen for requests
 const PORT = 8080
