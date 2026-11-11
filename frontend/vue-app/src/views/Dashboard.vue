@@ -8,7 +8,7 @@ import DashboardDataService from '../services/DashBoardDataService'
 const tasks = ref([])
 const errorMessage = ref('')
 
-const selectedArea = ref('All') 
+const selectedArea = ref('All')
 const selectedRoomate = ref('All')
 
 const areas = ['All', 'Bathroom', 'Bedroom', 'Kitchen', 'Other']
@@ -174,14 +174,14 @@ function addTask() {
         assignedTo: roommates.value.find(user => user.user_id === Number(newTask.value.assignedTo))?.user_name || 'Unassigned',
         assignedUserId: Number(newTask.value.assignedTo),
         priority: created.task_priority || created.priority || newTask.value.priority,
-        dueDate: (created.task_duedate || created.dueDate) 
-          ? (created.task_duedate || created.dueDate).split('T')[0] 
+        dueDate: (created.task_duedate || created.dueDate)
+          ? (created.task_duedate || created.dueDate).split('T')[0]
           : newTask.value.dueDate,
         status: created.task_status || created.status || newTask.value.status || 'todo'
       })
 
       showAddForm.value = false
-      newTask.value = { 
+      newTask.value = {
         title: '',
         area: 'Bathroom',
         assignedTo: null,
@@ -274,7 +274,7 @@ function deleteTask() {
       <div class="flex flex-wrap gap-3">
         <!-- Area filter dropdown -->
         <select v-model="selectedArea" class="bg-white border border-gray-200 rounded-lg px-4 py-2">
-          <option v-for="area in areas" :key="area" :value="area">  
+          <option v-for="area in areas" :key="area" :value="area">
             {{ area === 'All' ? 'All Areas' : area }}
           </option>
         </select>
@@ -296,16 +296,16 @@ function deleteTask() {
 
     <!-- Kanban board columns container -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-      <TaskColumn 
-        v-for="column in columns" 
-        :key="column.id" 
-        :title="column.title" 
-        :tasks="column.tasks" 
-        :color="column.color" 
-        :status="column.id" 
-        @change-status="changeTaskStatus" 
-        @drop-task="handleTaskDrop" 
-        @edit-task="openEditTask" 
+      <TaskColumn
+        v-for="column in columns"
+        :key="column.id"
+        :title="column.title"
+        :tasks="column.tasks"
+        :color="column.color"
+        :status="column.id"
+        @change-status="changeTaskStatus"
+        @drop-task="handleTaskDrop"
+        @edit-task="openEditTask"
       />
     </div>
 
@@ -313,9 +313,9 @@ function deleteTask() {
     <div v-if="showAddForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <form @submit.prevent="addTask" class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
         <h2 class="text-xl font-bold">Add New Task</h2>
-        
+
         <input v-model="newTask.title" required placeholder="Task title" class="w-full border rounded-lg p-2" />
-        
+
         <label class="block text-sm">Area</label>
         <select v-model="newTask.area" class="w-full border rounded-lg p-2">
           <option v-for="area in areas.filter(a => a !== 'All')" :key="area" :value="area">
@@ -325,7 +325,7 @@ function deleteTask() {
 
         <!-- Dynamic roommate assignment list from MySQL -->
         <label class="block text-sm">Assigned To</label>
-        
+
         <select v-model="newTask.assignedTo" required class="w-full border rounded-lg p-2">
           <option :value="null">Select a roommate</option>
           <option v-for="user in roommates" :key="user.user_id" :value="user.user_id">
@@ -342,7 +342,7 @@ function deleteTask() {
 
         <label class="block text-sm">Due Date</label>
         <input v-model="newTask.dueDate" type="date" required class="w-full border rounded-lg p-2" />
-        
+
         <div class="flex justify-end gap-3 pt-3">
           <button type="button" @click="showAddForm = false" class="px-4 py-2 rounded-lg border">
             Cancel
@@ -357,16 +357,16 @@ function deleteTask() {
     <!-- Modal dialog for editing or deleting an existing task -->
     <div v-if="showEditForm && editingTask" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <form @submit.prevent="saveTask" class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
-        <div class="flex justify-between items-center"> 
+        <div class="flex justify-between items-center">
           <h2 class="text-xl font-bold text-gray-800">Edit Task</h2>
           <button type="button" @click="showEditForm = false" class="text-gray-400 hover:text-gray-700">✕</button>
         </div>
-        
+
         <div>
           <label class="block text-sm mb-1">Task Title</label>
           <input v-model="editingTask.title" required placeholder="Task title" class="w-full border rounded-lg p-2" />
         </div>
-        
+
         <div>
           <label class="block text-sm mb-1">Area</label>
           <select v-model="editingTask.area" class="w-full border rounded-lg p-2">
@@ -375,7 +375,7 @@ function deleteTask() {
             </option>
           </select>
         </div>
-        
+
         <!-- Dynamic roommate assignment list from MySQL -->
         <div>
           <label class="block text-sm mb-1">Assigned To</label>
@@ -386,7 +386,7 @@ function deleteTask() {
             </option>
           </select>
         </div>
-        
+
         <div>
           <label class="block text-sm mb-1">Priority</label>
           <select v-model="editingTask.priority" class="w-full border rounded-lg p-2">
@@ -395,7 +395,7 @@ function deleteTask() {
             <option value="High">High</option>
           </select>
         </div>
-        
+
         <div>
           <label class="block text-sm mb-1">Due Date</label>
           <input v-model="editingTask.dueDate" type="date" required class="w-full border rounded-lg p-2" />
