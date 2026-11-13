@@ -82,6 +82,15 @@ async function login() {
           {{ loading ? 'Logging in...' : 'Login' }}
         </button>
       </form>
+      <p class="mt-5 text-center text-sm text-gray-500">
+        Don't have an account?
+        <RouterLink
+          to="/create-account"
+          class="font-semibold text-violet-600 hover:underline"
+        >
+          Sign up
+        </RouterLink>
+      </p>
     </div>
   </main>
 </template>

@@ -2,8 +2,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardDataService from '../services/DashBoardDataService'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const copyMessage = ref('')
 const activeDashboard = ref(null)
 
@@ -52,6 +54,9 @@ async function copyCode() {
 }
 
 function logout() {
+  authStore.logout()
+  localStorage.removeItem('roomie-active-dashboard')
+  localStorage.removeItem('roomie-active-room')
   router.push('/')
 }
 

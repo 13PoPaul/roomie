@@ -21,13 +21,13 @@ exports.create = async (req, res) => {
     const hashPassword = await bcrypt.hash(password, salt)
 
     const user = await User.create({
-      fullname: fullname,
-      email: email,
-      password: hashPassword
+      user_name: fullname,
+      user_email: email,
+      user_password: hashPassword
     })
 
     // Retourner l'utilisateur créé sans le mot de passe
-    const { password: _, ...userData } = user.toJSON()
+    const { user_password: _, ...userData } = user.toJSON()
     res.status(201).send(userData)
   } catch (err) {
     res.status(500).send({

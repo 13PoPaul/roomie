@@ -72,33 +72,64 @@ exports.findOne = (req, res) => {
 }
 
 // 4. Mettre à jour une tâche
-exports.update = (req, res) => {
+
+exports.update = async (req, res) => {
   const id = req.params.id
 
-  const payload = {
-    ...(req.body.title && { task_title: req.body.title }),
-    ...(req.body.description && { task_description: req.body.description }),
-    ...(req.body.location && { task_location: req.body.location }),
-    ...(req.body.dueDate && { task_duedate: req.body.dueDate }),
-    ...(req.body.priority && { task_priority: req.body.priority }),
-    ...(req.body.status && { task_status: req.body.status }),
-    ...req.body
-  }
+  try {
+    const task = await Task.findByPk(id)
 
-  Task.update(payload, {
-    where: { task_id: id }
-  })
-    .then(num => {
-      if (num == 1 || num[0] == 1) {
-        res.send({ message: 'Task was updated successfully.' })
-      } else {
-        res.send({ message: `Cannot update task with id=${id}.` })
+    if (!task) {
+      return res.status(404).send({
+        message: `Cannot find task with id=${id}.`
+      })
+    }
+
+    const payload = {
+      ...(req.body.title !== undefined && { task_title: req.body.title }),
+      ...(req.body.description !== undefined && { task_description: req.body.description }),
+      ...(req.body.location !== undefined && { task_location: req.body.location }),
+      ...(req.body.dueDate !== undefined && { task_duedate: req.body.dueDate }),
+      ...(req.body.priority !== undefined && { task_priority: req.body.priority }),
+      ...(req.body.status !== undefined && { task_status: req.body.status })
+    }
+
+    await db.connex.transaction(async (transaction) => {
+      await task.update(payload, { transaction })
+
+      // Modifier l'attribution seulement si user_id est fourni
+      if (Object.prototype.hasOwnProperty.call(req.body, 'user_id')) {
+        const userId = req.body.user_id
+
+        if (userId !== null && userId !== '') {
+          const user = await db.users.findByPk(userId, { transaction })
+
+          if (!user || user.dashboard_id !== task.dashboard_id) {
+            const error = new Error('User does not belong to this dashboard.')
+            error.status = 400
+            throw error
+          }
+        }
+
+        await task.setUsers(
+          userId === null || userId === '' ? [] : [userId],
+          { transaction }
+        )
       }
     })
-    .catch(err => {
-      res.status(500).send({ message: `Error updating task with id=${id}.` })
+
+    return res.send({
+      message: 'Task was updated successfully.'
     })
+  } catch (err) {
+    console.error('Error updating task:', err)
+
+    return res.status(err.status || 500).send({
+      message: err.status ? err.message : 'Error updating task.'
+    })
+  }
 }
+
 
 // 5. Supprimer une tâche
 exports.delete = (req, res) => {

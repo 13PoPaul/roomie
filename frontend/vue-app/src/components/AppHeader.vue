@@ -1,9 +1,18 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import ProfileMenu from './ProfileMenu.vue'
 
 const route = useRoute()
+
+const authStore = useAuthStore()
+const userName = computed(() =>
+  authStore.user?.fullname || 'User'
+)
+const userInitial = computed(() =>
+  userName.value.charAt(0).toUpperCase()
+)
 const showProfileMenu = ref(false)
 const isDashboard = computed(() => route.name === 'dashboard')
 
@@ -28,7 +37,7 @@ function closeProfileMenu() {
       <div class="relative z-50">
         <!-- Overlay invisible pour fermer le menu au clic en dehors -->
         <div 
-          v-if="showProfileMenu && isDashboard" 
+          v-if="showProfileMenu"
           class="fixed inset-0 z-40" 
           @click="closeProfileMenu"
         ></div>
@@ -43,20 +52,20 @@ function closeProfileMenu() {
         >
           <div class="text-right">
             <p class="text-sm font-semibold text-gray-900 group-hover:text-violet-600 transition-colors">
-              Paul Iglesias
+              {{userName}}
             </p>
             <p class="text-xs text-gray-400 group-hover:text-violet-400 transition-colors">
               Student
             </p>
           </div>
           <div class="bg-violet-500 group-hover:bg-violet-600 text-white font-semibold rounded-full w-9 h-9 flex items-center justify-center transition-colors shadow-sm">
-            P
+            {{ userInitial }}
           </div>
         </button>
 
         <!-- Pop-up ProfileMenu -->
         <div 
-          v-if="showProfileMenu && isDashboard" 
+          v-if="showProfileMenu"
           class="absolute right-0 top-full mt-3 z-50"
         >
           <ProfileMenu />
