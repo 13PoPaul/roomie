@@ -13,7 +13,7 @@ function goToJoin(){
 </script>
 
 <template>
-    <main class="flex flex-col items-center justify-center px-6">
+    <main class="flex flex-col items-center justify-center px-6 min-h-[calc(100vh-68px)]">
         <h1 class="text-3xl font-bold text-gray-900 text-center mb-8">
             Welcome ! You haven't joined a dashboard yet.
         </h1>
