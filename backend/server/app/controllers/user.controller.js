@@ -129,3 +129,22 @@ exports.findAll = (req, res) => {
     .then(data => res.send(data))
     .catch(err => res.status(500).send({ message: err.message || 'Error fetching users.' }))
 }
+
+// 6. Mettre à jour un utilisateur (ex: quitter un dashboard)
+exports.update = async (req, res) => {
+  const id = req.params.id
+
+  try {
+    const [updated] = await User.update(req.body, {
+      where: { user_id: id }
+    })
+
+    if (updated) {
+      res.send({ message: 'User updated successfully.' })
+    } else {
+      res.status(404).send({ message: `User with id=${id} not found.` })
+    }
+  } catch (err) {
+    res.status(500).send({ message: err.message || 'Error updating user.' })
+  }
+}
