@@ -6,6 +6,7 @@ module.exports = app => {
   router.post('/login', user.findOne)
   router.get('/auth', user.auth)
   router.get('/logout', user.logout)
+  router.put('/:id', user.update)
 
   app.use('/api/user', router)
 }

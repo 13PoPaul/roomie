@@ -2,7 +2,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardDataService from '../services/DashBoardDataService'
+import UserDataService from '../services/UserDataService'
 import { useAuthStore } from '../stores/auth'
+
+const emit = defineEmits(['close'])
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -33,7 +36,6 @@ async function loadDashboard() {
 
 onMounted(loadDashboard)
 
-// Récupère la propriété MySQL (invitation_code) ou JavaScript (invitationCode)
 const invitationCode = computed(() => {
   return activeDashboard.value?.invitation_code || activeDashboard.value?.invitationCode || ''
 })
@@ -54,18 +56,37 @@ async function copyCode() {
 }
 
 function logout() {
+  emit('close')
   authStore.logout()
   localStorage.removeItem('roomie-active-dashboard')
   localStorage.removeItem('roomie-active-room')
   router.push('/')
 }
 
-function leaveDashboard() {
-  const confirmed = window.confirm('Are you sure you want to leave this dashboard ?')
-  if (!confirmed) return
-  localStorage.removeItem('roomie-active-dashboard')
-  localStorage.removeItem('roomie-active-room')
-  router.push('/dashboard-selection')
+async function leaveDashboard() {
+  // 1. Ferme immédiatement le menu My Profile (sans pop-up)
+  emit('close')
+
+  try {
+    // 2. Récupère l'utilisateur depuis Pinia ou le localStorage
+    const currentUser = authStore.user || JSON.parse(localStorage.getItem('user') || 'null')
+    const userId = currentUser?.id || currentUser?.user_id
+
+    if (userId) {
+      // 3. Met dashboard_id à null dans MySQL
+      await UserDataService.update(userId, { dashboard_id: null })
+
+      // 4. Met à jour Pinia et le localStorage
+      authStore.setUser({ ...currentUser, dashboard_id: null })
+    }
+  } catch (error) {
+    console.error('Erreur lors du reset du dashboard_id :', error)
+  } finally {
+    // 5. Nettoie le dashboard actif et redirige vers la sélection
+    localStorage.removeItem('roomie-active-dashboard')
+    localStorage.removeItem('roomie-active-room')
+    router.push('/dashboard-selection')
+  }
 }
 </script>
 
@@ -79,7 +100,6 @@ function leaveDashboard() {
         Invitation Code 
       </p>
 
-      <!-- Le code est maintenant affiché directement et en permanence -->
       <div class="bg-violet-50 rounded-lg p-3 text-sm font-medium text-violet-700 text-center">
         <span v-if="!invitationCode" class="text-gray-400">
           No active invitation code

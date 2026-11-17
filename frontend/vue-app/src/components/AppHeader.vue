@@ -63,12 +63,12 @@ function closeProfileMenu() {
           </div>
         </button>
 
-        <!-- Pop-up ProfileMenu -->
+
         <div 
           v-if="showProfileMenu"
           class="absolute right-0 top-full mt-3 z-50"
         >
-          <ProfileMenu />
+          <ProfileMenu @close="closeProfileMenu" />
         </div>
       </div>
     </div>

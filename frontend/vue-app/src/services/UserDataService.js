@@ -16,6 +16,10 @@ class UserDataService {
   getLogout() {
     return http.get('/user/logout')
   }
+
+  update(id, data) {
+    return http.put(`/user/${id}`, data)
+  }
 }
 
 export default new UserDataService()
